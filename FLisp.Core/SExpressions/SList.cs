@@ -6,11 +6,11 @@ using System.Collections.Immutable;
 
 namespace FLisp.Core.SExpressions;
 
-public class SList
+public class SList : SExpr<ImmutableArray<SExpr>>
 {
-    private ImmutableArray<SExpr> lista;
+    public SList(ICollection<SExpr> value) : base(ESExprType.List, value.ToImmutableArray())
+    {
+    }
 
-    public SList(ICollection<SExpr> lista) => this.lista = lista.ToImmutableArray();
-
-    public override string ToString() => $"({string.Join(',', lista)})";
+    public override string ToString() => $"({string.Join(',', Value)})";
 }

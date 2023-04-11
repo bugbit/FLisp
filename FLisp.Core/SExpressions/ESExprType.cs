@@ -6,5 +6,5 @@ namespace FLisp.Core.SExpressions;
 
 public enum ESExprType
 {
-    Numerics, String, Symbol, List
+    Integer, String, Symbol, List
 }
