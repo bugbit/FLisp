@@ -2,11 +2,13 @@
 // Use of this source code is governed by a MIT license that can be found in the LICENSE file.
 // This file is part of FLisp.
 
-namespace FLisp.Core.SExpressions;
+namespace FLisp.Core;
 
 using System.IO;
+using System.Text.RegularExpressions;
 
 public class SExprParser
 {
+    private static readonly Regex SExprRegEx = new Regex(@"(?<token>[\(\)]|\S+|""[^""]+"")", RegexOptions.Compiled);
     private TextReader reader;
 }

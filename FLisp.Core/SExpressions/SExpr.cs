@@ -7,6 +7,7 @@ namespace FLisp.Core.SExpressions;
 using System.Numerics;
 
 /*
+        ; Comentario
         1
         "hola mundo"
         suma
