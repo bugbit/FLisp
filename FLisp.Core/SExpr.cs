@@ -7,6 +7,10 @@ namespace FLisp.Core;
 public static class SExpr
 {
     public const string NullStr = "nil";
+    public const char CommentChar = ';';
+    public const char DobleQuoteChar = '"';
+    public const char BeginListChar = '(';
+    public const char EndListChar = ')';
 
     public static string ToString(object? value) => (value?.ToString()) ?? NullStr;
 }

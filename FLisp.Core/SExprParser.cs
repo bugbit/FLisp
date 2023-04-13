@@ -6,13 +6,16 @@ namespace FLisp.Core;
 
 using System;
 using System.IO;
-using System.Text.RegularExpressions;
+using System.Text;
 
 public class SExprParser
 {
-    private static readonly Regex sExprRegEx = new Regex(@"(?<token>[\(\)]|""(?<texto>[^""]*)""|\S+)", RegexOptions.Compiled);
+    //private static readonly Regex sExprRegEx = new Regex(@"(?<token>[\(\)]|""(?<texto>[^""]*)""|\S+)", RegexOptions.Compiled);
     private TextReader reader;
-    private Match? match;
+    private string? line;
+    private int position;
+
+    public bool EOF { get; private set; }
 
     public SExprParser(TextReader reader) => this.reader = reader;
 
@@ -45,8 +48,8 @@ public class SExprParser
                 if (Int128.TryParse(token, out var numInt))
                     return (true, numInt);
 
-            if (car1 == '"' && match!.Groups["texto"].Success)
-                return (true, new SString(match.Groups["texto"].Value));
+            if (car1 == SExpr.DobleQuoteChar)
+                return (true, new SString(token.Substring(1, token.Length - 2)));
         }
 
         return (true, token);
@@ -56,31 +59,92 @@ public class SExprParser
     {
         for (; ; )
         {
-            if (match == null)
+            if (line == null)
             {
                 if (!await ReadLine())
                     return null;
             }
+            while (position < line!.Length && char.IsSeparator(line[position])) position++;
+            if (position < line!.Length)
+            {
+                var car1 = line[position];
+
+                if (car1 == SExpr.CommentChar)
+                {
+                    line = null;
+
+                    continue;
+                }
+
+                return car1 switch
+                {
+                    SExpr.BeginListChar or SExpr.EndListChar => car1.ToString(),
+                    SExpr.DobleQuoteChar => ReadString(),
+                    _ => ReadWord()
+                };
+            }
             else
-                match = match.NextMatch();
-
-            var t = match!;
-
-            if (t.Success)
-                return t.Groups["token"].Value;
-
-            match = null;
+                line = null;
         }
+    }
+
+    private string ReadWord()
+    {
+        var word = new StringBuilder();
+        char car;
+
+        while (position < line!.Length && !char.IsSeparator((car = line[position])))
+        {
+            word.Append(car);
+            position++;
+        }
+
+        return word.ToString();
+    }
+
+    private string ReadString()
+    {
+        var theString = new StringBuilder();
+
+        if (position < line!.Length)
+        {
+            theString.Append(line[position++]);
+            while (position < line!.Length)
+            {
+                var car = line[position++];
+
+                if (car == SExpr.DobleQuoteChar)
+                {
+                    theString.Append(car);
+
+                    break;
+                }
+
+                if (car == '\\' && position < line!.Length && line[position] == SExpr.DobleQuoteChar)
+                    car = line[position++];
+
+                theString.Append(car);
+            }
+        }
+
+        return theString.ToString();
     }
 
     private async Task<bool> ReadLine()
     {
-        var line = await reader.ReadLineAsync();
-
-        if (line == null)
+        if (EOF)
             return false;
 
-        match = sExprRegEx.Match(line);
+        line = await reader.ReadLineAsync();
+
+        if (line == null)
+        {
+            EOF = true;
+
+            return false;
+        }
+
+        position = 0;
 
         return true;
     }
