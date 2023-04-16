@@ -10,35 +10,32 @@ using System.Text;
 
 public class SExprParser
 {
+    private enum EReadSExprFlags
+    {
+        SExpr, BeginList, EndList
+    }
+
     //private static readonly Regex sExprRegEx = new Regex(@"(?<token>[\(\)]|""(?<texto>[^""]*)""|\S+)", RegexOptions.Compiled);
     private TextReader reader;
     private string? line;
-    private int position;
+    private int lineNumber = 0;
+    private int position = 0;
 
     public bool EOF { get; private set; }
 
     public SExprParser(TextReader reader) => this.reader = reader;
 
-    public async Task<object?[]> ReadSExprs()
+    public async Task<object?> ReadSExpr(CancellationToken cancellationToken) => (await ReadSExprInternal(EReadSExprFlags.SExpr, cancellationToken)).sexpr;
+
+    private async Task<(EReadSExprFlags flagsEnd, object? sexpr)> ReadSExprInternal(EReadSExprFlags flags, CancellationToken cancellationToken)
     {
-        var sexprs = new List<object?>();
-        (bool isread, object? value) sexpr;
-
-        while ((sexpr = await TryReadSExpr()).isread)
-            sexprs.Add(sexpr.value);
-
-        return sexprs.ToArray();
-    }
-
-    public async Task<(bool isread, object? value)> TryReadSExpr()
-    {
-        var token = await ReadToken();
+        var token = await ReadToken(cancellationToken);
 
         if (token == null)
-            return (false, null);
+            return (flags, null);
 
         if (string.Equals(token, SExpr.NullStr, StringComparison.OrdinalIgnoreCase))
-            return (true, null);
+            return (flags, null);
 
         if (token.Length > 0)
         {
@@ -47,22 +44,55 @@ public class SExprParser
             if (char.IsDigit(car1))
             {
                 if (Int128.TryParse(token, out var numInt))
-                    return (true, numInt);
+                    return (flags, numInt);
 
                 throw new NotImplementedException();
             }
 
-            if (car1 == SExpr.DobleQuoteChar)
-                return (true, new SString(token.Substring(1, token.Length - 2)));
+            return car1 switch
+            {
+                SExpr.DobleQuoteChar => (flags, new SString(token.Substring(1, token.Length - 2))),
+                SExpr.BeginListChar => (flags, await ReadList(cancellationToken)),
+                SExpr.EndListChar => flags == EReadSExprFlags.BeginList ? (EReadSExprFlags.EndList, null) : throw new SExprParserException($"Not expected '{token}'") { Line = lineNumber, Column = position },
+                _ => (flags, token)
+            };
+
+            //if (car1 == SExpr.DobleQuoteChar)
+            //    return (flags, new SString(token.Substring(1, token.Length - 2)));
         }
 
-        return (true, token);
+        return (flags, token);
     }
 
-    private async Task<string?> ReadToken()
+    private async Task<SList> ReadList(CancellationToken cancellationToken)
+    {
+        (int line, int col) lineCol0 = (lineNumber, position++);
+        var sexprs = new List<object?>();
+        (EReadSExprFlags flagsEnd, object? sexpr) sexpr = (EReadSExprFlags.BeginList, null);
+        bool exit;
+
+        do
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            sexpr = await ReadSExprInternal(sexpr.flagsEnd, cancellationToken);
+            if (EOF)
+                throw new SExprParserException($"Last opening parenthesis probably in line {lineCol0.line} column {lineCol0.col}") { Line = lineNumber, Column = position };
+
+            exit = sexpr.flagsEnd == EReadSExprFlags.EndList;
+            if (!exit)
+                sexprs.Add(sexpr.sexpr);
+        } while (!exit);
+
+        return new(sexprs);
+    }
+
+    private async Task<string?> ReadToken(CancellationToken cancellationToken)
     {
         for (; ; )
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (line == null)
             {
                 if (!await ReadLine())
@@ -83,8 +113,8 @@ public class SExprParser
                 return car1 switch
                 {
                     SExpr.BeginListChar or SExpr.EndListChar => car1.ToString(),
-                    SExpr.DobleQuoteChar => ReadString(),
-                    _ => ReadWord()
+                    SExpr.DobleQuoteChar => ReadString(cancellationToken),
+                    _ => ReadWord(cancellationToken)
                 };
             }
             else
@@ -92,13 +122,15 @@ public class SExprParser
         }
     }
 
-    private string ReadWord()
+    private string ReadWord(CancellationToken cancellationToken)
     {
         var word = new StringBuilder();
         char car;
 
         while (position < line!.Length && !char.IsSeparator((car = line[position])))
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             word.Append(car);
             position++;
         }
@@ -106,7 +138,7 @@ public class SExprParser
         return word.ToString();
     }
 
-    private string ReadString()
+    private string ReadString(CancellationToken cancellationToken)
     {
         var theString = new StringBuilder();
 
@@ -115,6 +147,8 @@ public class SExprParser
             theString.Append(line[position++]);
             while (position < line!.Length)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var car = line[position++];
 
                 if (car == SExpr.DobleQuoteChar)
@@ -148,6 +182,7 @@ public class SExprParser
             return false;
         }
 
+        lineNumber++;
         position = 0;
 
         return true;
