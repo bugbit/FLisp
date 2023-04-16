@@ -45,8 +45,12 @@ public class SExprParser
             var car1 = token[0];
 
             if (char.IsDigit(car1))
+            {
                 if (Int128.TryParse(token, out var numInt))
                     return (true, numInt);
+
+                throw new NotImplementedException();
+            }
 
             if (car1 == SExpr.DobleQuoteChar)
                 return (true, new SString(token.Substring(1, token.Length - 2)));
