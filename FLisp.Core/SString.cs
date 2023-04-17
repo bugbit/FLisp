@@ -20,7 +20,7 @@ namespace FLisp.Core
         public override bool Equals([NotNullWhen(true)] object? obj) => (obj is SString other) && Equals(other);
         public override int GetHashCode() => value.GetHashCode();
 
-        public override string ToString() => $"""{value}""";
+        public override string ToString() => $@"""{value}""";
 
         public static bool operator ==(SString left, SString right) => left.Equals(right);
         public static bool operator !=(SString left, SString right) => !left.Equals(right);

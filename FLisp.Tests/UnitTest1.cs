@@ -10,7 +10,18 @@ namespace FLisp.Tests;
 public class UnitTest1
 {
     [TestMethod]
-    public async Task TestMethod1()
+    public void TestListEquals()
+    {
+        var list1 = new SList(new object[] { "func1", "a", "b", 100, new SString("sum") });
+        var list2 = new SList(new object[] { "func1", "a", "b", 100, new SString("sum") });
+#if DEBUG
+        var result = list1.Equals(list2);
+#endif
+
+        Assert.AreEqual(list1, list2);
+    }
+    [TestMethod]
+    public async Task TestSExpr()
     {
         var sexprsStr = new StringBuilder();
         var cancellationToken = CancellationToken.None;
@@ -36,6 +47,6 @@ public class UnitTest1
         Assert.AreEqual(sexpr, new SString("Hola mundo"));
 
         sexpr = await parser.ReadSExpr(cancellationToken);
-        Assert.AreEqual(sexpr, new SList(new object?[] { "func1", "a", "b", 100, new SString("sum") }));
+        Assert.AreEqual(sexpr, new SList(new object[] { "func1", "a", "b", (Int128)100, new SString("sum") }));
     }
 }

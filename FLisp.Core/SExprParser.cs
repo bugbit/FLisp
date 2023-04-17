@@ -25,17 +25,17 @@ public class SExprParser
 
     public SExprParser(TextReader reader) => this.reader = reader;
 
-    public async Task<object?> ReadSExpr(CancellationToken cancellationToken) => (await ReadSExprInternal(EReadSExprFlags.SExpr, cancellationToken)).sexpr;
+    public async Task<object?> ReadSExpr(CancellationToken cancellationToken) => (await ReadSExprInternal(EReadSExprFlags.SExpr, cancellationToken)).expr;
 
-    private async Task<(EReadSExprFlags flagsEnd, object? sexpr)> ReadSExprInternal(EReadSExprFlags flags, CancellationToken cancellationToken)
+    private async Task<(EReadSExprFlags flagsEnd, object? expr)> ReadSExprInternal(EReadSExprFlags flags, CancellationToken cancellationToken)
     {
         var token = await ReadToken(cancellationToken);
 
         if (token == null)
             return (flags, null);
 
-        if (string.Equals(token, SExpr.NullStr, StringComparison.OrdinalIgnoreCase))
-            return (flags, null);
+        if (string.Equals(token, SExpr.NilStr, StringComparison.OrdinalIgnoreCase))
+            return (flags, SNil.Instance);
 
         if (token.Length > 0)
         {
@@ -67,8 +67,8 @@ public class SExprParser
     private async Task<SList> ReadList(CancellationToken cancellationToken)
     {
         (int line, int col) lineCol0 = (lineNumber, position++);
-        var sexprs = new List<object?>();
-        (EReadSExprFlags flagsEnd, object? sexpr) sexpr = (EReadSExprFlags.BeginList, null);
+        var sexprs = new List<object>();
+        (EReadSExprFlags flagsEnd, object? expr) sexpr = (EReadSExprFlags.BeginList, null);
         bool exit;
 
         do
@@ -76,12 +76,15 @@ public class SExprParser
             cancellationToken.ThrowIfCancellationRequested();
 
             sexpr = await ReadSExprInternal(sexpr.flagsEnd, cancellationToken);
-            if (EOF)
-                throw new SExprParserException($"Last opening parenthesis probably in line {lineCol0.line} column {lineCol0.col}") { Line = lineNumber, Column = position };
 
             exit = sexpr.flagsEnd == EReadSExprFlags.EndList;
             if (!exit)
-                sexprs.Add(sexpr.sexpr);
+            {
+                if (sexpr.expr == null)
+                    throw new SExprParserException($"Last opening parenthesis probably in line {lineCol0.line} column {lineCol0.col}") { Line = lineNumber, Column = position };
+
+                sexprs.Add(sexpr.expr);
+            }
         } while (!exit);
 
         return new(sexprs);

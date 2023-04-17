@@ -9,13 +9,13 @@ namespace FLisp.Core;
 
 public class SList : IEquatable<SList>
 {
-    private ImmutableArray<object?> exprs;
+    private ImmutableArray<object> exprs;
 
-    public SList(ICollection<object?> exprs) => this.exprs = exprs.ToImmutableArray();
+    public SList(ICollection<object> exprs) => this.exprs = exprs.ToImmutableArray();
 
-    public override string ToString() => $"({string.Join(' ', exprs.Select(e => SExpr.ToString(e)))})";
+    public override string ToString() => $"({string.Join(' ', exprs)})";
 
     public override bool Equals(object? obj) => (obj is SList list) && Equals(list);
     public bool Equals(SList? other) => other != null && Enumerable.SequenceEqual(exprs, other.exprs);
-    public override int GetHashCode() => HashCode.Combine(exprs.Select(s => s ?? DBNull.Value));
+    public override int GetHashCode() => HashCode.Combine(exprs);
 }
