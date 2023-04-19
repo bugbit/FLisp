@@ -6,6 +6,7 @@ namespace FLisp.Core;
 
 public class Context
 {
+    /*
     private Dictionary<string, Lambda> vars = new Dictionary<string, Lambda>();
     private Dictionary<string, Lambda> functions = new Dictionary<string, Lambda>();
 
@@ -93,5 +94,7 @@ public class Context
 
         functions[name] = fn;
     }
+
+    */
 }
 

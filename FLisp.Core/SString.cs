@@ -2,7 +2,6 @@
 // Use of this source code is governed by a MIT license that can be found in the LICENSE file.
 // This file is part of FLisp.
 
-using FLisp.Core.SExpressions;
 using System.Diagnostics.CodeAnalysis;
 
 namespace FLisp.Core

@@ -3,7 +3,6 @@
 // This file is part of FLisp.
 
 using System.Collections.Immutable;
-using FLisp.Core.SExpressions;
 
 namespace FLisp.Core;
 
@@ -18,4 +17,6 @@ public class SList : IEquatable<SList>
     public override bool Equals(object? obj) => (obj is SList list) && Equals(list);
     public bool Equals(SList? other) => other != null && Enumerable.SequenceEqual(exprs, other.exprs);
     public override int GetHashCode() => HashCode.Combine(exprs);
+
+    public object[] Skip(int n) => exprs.Skip(n).ToArray();
 }
