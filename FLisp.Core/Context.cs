@@ -6,6 +6,30 @@ namespace FLisp.Core;
 
 public class Context
 {
+    private Dictionary<string, object> identities = new Dictionary<string, object>();
+
+    public bool IsScopeGlobal => Parent == null;
+    public Context? Parent { get; protected set; }
+
+    public bool TryGetIdentity(string name, out object? identity)
+    {
+        var context = this;
+
+        do
+        {
+            if (identities.TryGetValue(name, out var value2))
+            {
+                identity = value2;
+
+                return true;
+            }
+            context = context.Parent;
+        } while (context != null && !context.IsScopeGlobal);
+
+        identity = null;
+
+        return false;
+    }
     /*
     private Dictionary<string, Lambda> vars = new Dictionary<string, Lambda>();
     private Dictionary<string, Lambda> functions = new Dictionary<string, Lambda>();

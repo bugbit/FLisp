@@ -8,6 +8,6 @@ public class FLisp
 {
     private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
-    public CancellationToken CancelToken => cancellationTokenSource.Token;
+    //public CancellationToken CancelToken => cancellationTokenSource.Token;
     public Primitives Primitives { get; } = new();
 }

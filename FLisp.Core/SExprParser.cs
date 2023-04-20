@@ -35,7 +35,7 @@ public class SExprParser
             return (flags, null);
 
         if (string.Equals(token, SExpr.NilStr, StringComparison.OrdinalIgnoreCase))
-            return (flags, SNil.Instance);
+            return (flags, SNil.Value);
 
         if (token.Length > 0)
         {

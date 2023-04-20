@@ -2,11 +2,12 @@
 // Use of this source code is governed by a MIT license that can be found in the LICENSE file.
 // This file is part of FLisp.
 
+using System.Collections;
 using System.Collections.Immutable;
 
 namespace FLisp.Core;
 
-public class SList : IEquatable<SList>
+public class SList : IEnumerable<object>, IEquatable<SList>
 {
     private ImmutableArray<object> exprs;
 
@@ -19,4 +20,8 @@ public class SList : IEquatable<SList>
     public override int GetHashCode() => HashCode.Combine(exprs);
 
     public object[] Skip(int n) => exprs.Skip(n).ToArray();
+
+    public IEnumerator<object> GetEnumerator() => exprs.AsEnumerable().GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

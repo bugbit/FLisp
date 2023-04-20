@@ -8,9 +8,9 @@ namespace FLisp.Core;
 
 public class SNil
 {
-    private static readonly Lazy<SNil> instance = new Lazy<SNil>(() => new());
+    private static readonly Lazy<SNil> value = new Lazy<SNil>(() => new());
 
-    public static SNil Instance => instance.Value;
+    public static SNil Value => value.Value;
 
     private SNil() { }
 }
