@@ -4,22 +4,21 @@
 
 namespace FLisp.Core;
 
-public delegate object EvalDelegate(FLisp lisp, Context context, object[] args, CancellationToken cancellationToken);
-public delegate Task<object> EvalTaskDelegate(FLisp lisp, Context context, object[] args, CancellationToken cancellationToken);
+
 
 public class Primitives
 {
-    private Dictionary<string, (EvalDelegate? eval, EvalTaskDelegate? evalAsParallel, EvalTaskDelegate? evalAsync)> primitives;
+    private Dictionary<string, EvalTaskDelegate> primitives;
     //private Delegate addDelegate;
 
     public Primitives()
     {
         //addDelegate = AddAsync;
-        primitives = new Dictionary<string, (EvalDelegate? eval, EvalTaskDelegate? evalAsParallel, EvalTaskDelegate? evalAsync)>(StringComparer.InvariantCultureIgnoreCase)
+        primitives = new Dictionary<string, EvalTaskDelegate>(StringComparer.InvariantCultureIgnoreCase)
         {
-            ["+"] = (null, AddAsync, null),
-            ["number?"] = (IsNumber, null, null),
-            ["define"] = (Define, null, null)
+            ["+"] = AddAsync,
+            ["number?"] = IsNumberAsync,
+            ["define"] = DefineAsync
         };
     }
 
@@ -41,21 +40,52 @@ public class Primitives
 
         return expr;
     }
-    public async Task<object> EvalAsParallel(FLisp lisp, Context context, object expr, CancellationToken cancellationToken)
+    public Task<object> EvalAsParallel(FLisp lisp, Context context, object expr, CancellationToken cancellationToken)
     {
-        if (expr is SList fn)
-        {
-            try
-            {
-                return await AddAsync(lisp, context, fn.Skip(1), cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                throw new EvalException($"Error in {fn} : {ex.Message}", ex) { Expr = expr };
-            }
-        }
+        //if (expr is SList fn)
+        //{
+        //    try
+        //    {
+        //        return await AddAsync(lisp, context, fn.Skip(1), cancellationToken);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new EvalException($"Error in {fn} : {ex.Message}", ex) { Expr = expr };
+        //    }
+        //}
 
         return Task.FromResult(expr);
+    }
+
+    public async Task<object> EvalAsync(FLisp lisp, Context context, object expr, EvalFlags flags, CancellationToken cancellationToken)
+    {
+        if (expr is EvalLaterDelegate evalLater)
+            expr = evalLater.Invoke();
+        else if (expr is SList fn)
+            return await EvalFunctionAsync(lisp, context, fn, flags, cancellationToken);
+
+        return expr;
+    }
+
+    public Task<object> EvalFunctionAsync(FLisp lisp, Context context, SList fn, EvalFlags flags, CancellationToken cancellationToken)
+    {
+        if (fn.Count == 0)
+            throw new EvalException("Ill-formed expression");
+
+        var name = fn[0];
+
+        if (!(name is string ident))
+            throw new EvalException($"{name} not is a name function");
+
+        if (primitives.TryGetValue(ident, out var primitive))
+        {
+            var _args = fn.Skip(1).ToArray();
+            var _later = () => (object)primitive.Invoke(lisp, context, _args, cancellationToken);
+        }
+        else
+            throw new EvalException($"{name} function not defined");
+
+        return Task.FromResult((object)SNil.Value);
     }
 
     /*
@@ -131,6 +161,8 @@ public class Primitives
         return SNil.Value;
     }
 
+    public Task<object> IsNumberAsync(FLisp lisp, Context context, object[] args, CancellationToken cancellationToken) => Task.FromResult(IsNumber(lisp, context, args, cancellationToken));
+
     public object Define(FLisp lisp, Context context, object[] args, CancellationToken cancellationToken)
     {
         var name = args[0];
@@ -138,6 +170,9 @@ public class Primitives
 
         return SNil.Value;
     }
+
+    public Task<object> DefineAsync(FLisp lisp, Context context, object[] args, CancellationToken cancellationToken)
+        => Task.FromResult(Define(lisp, context, args, cancellationToken));
 
     public async Task<object> AddAsync(FLisp lisp, Context context, object[] args, CancellationToken cancellationToken)
     {

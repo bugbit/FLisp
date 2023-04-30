@@ -3,13 +3,18 @@
 // This file is part of FLisp.
 
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace FLisp.Core;
 
-public class SList : IEnumerable<object>, IEquatable<SList>
+public class SList : IEnumerable<object>, IEquatable<SList>, IReadOnlyList<object>
 {
     private ImmutableArray<object> exprs;
+
+    public int Count => exprs.Length;
+
+    public object this[int index] => exprs[index];
 
     public SList(ICollection<object> exprs) => this.exprs = exprs.ToImmutableArray();
 
@@ -19,7 +24,7 @@ public class SList : IEnumerable<object>, IEquatable<SList>
     public bool Equals(SList? other) => other != null && Enumerable.SequenceEqual(exprs, other.exprs);
     public override int GetHashCode() => HashCode.Combine(exprs);
 
-    public object[] Skip(int n) => exprs.Skip(n).ToArray();
+    //public object[] Skip(int n) => exprs.Skip(n).ToArray();
 
     public IEnumerator<object> GetEnumerator() => exprs.AsEnumerable().GetEnumerator();
 

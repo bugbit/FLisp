@@ -4,6 +4,18 @@
 
 namespace FLisp.Core;
 
+public delegate object EvalDelegate(FLisp lisp, Context context, object[] args, CancellationToken cancellationToken);
+public delegate Task<object> EvalTaskDelegate(FLisp lisp, Context context, object[] args, CancellationToken cancellationToken);
+public delegate object EvalLaterDelegate();
+
+/// <summary>
+/// number => int128
+/// identification => string
+/// string => SString
+/// list => SList
+/// EvalLater => eval later
+/// EvalTaskDelegate => function
+/// </summary>
 public static class SExpr
 {
     public const string NilStr = "nil";
